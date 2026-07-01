@@ -163,10 +163,16 @@ RnsIntVec operator*(const RnsIntVec &a, const RnsIntVec &b) {
     if (a.dimension() != b.dimension()) {
         throw std::invalid_argument("Operands' poly len mismatch.");
     }
+    // b must have at least as many components as a (b may have more; extra
+    // components in b are ignored — consistent with operator+= / operator-=).
+    if (b.component_count() < a.component_count()) {
+        throw std::invalid_argument(
+            "Operand b contains less components than a in operator*.");
+    }
     auto dimension = a.dimension();
-    auto components = std::min(a.component_count(), b.component_count());
-    auto moduli(a.modulus_vec()), b_moduli(b.modulus_vec());
-    moduli.resize(components);
+    auto components = a.component_count();
+    auto moduli(a.modulus_vec());
+    auto b_moduli(b.modulus_vec());
     b_moduli.resize(components);
     if (moduli != b_moduli) {
         throw std::invalid_argument("Operands' moduli mismatch.");
