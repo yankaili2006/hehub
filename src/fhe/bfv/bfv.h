@@ -25,6 +25,12 @@ struct BfvCt : public RlweCt {
     u64 plain_modulus = 1;
 };
 
+/// @brief BFV 二次(degree-2)密文, 乘法 tensor 后 relin 前的三分量形式。
+struct BfvQuadraticCt : public std::array<RnsPolynomial, 3> {
+    using std::array<RnsPolynomial, 3>::array;
+    u64 plain_modulus = 1;
+};
+
 /// @brief SIMD 打包编码(与 BGV 一致的 CRT 批处理)。
 BfvPt simd_encode(const std::vector<u64> &data, const u64 modulus,
                   size_t slot_count = 0);
@@ -53,6 +59,13 @@ BfvCt sub_plain(const BfvCt &ct, const BfvPt &pt);
 
 /// @brief 明文乘(密×明)。明文不作 Δ 缩放(Δm·m'=Δ(mm'))。
 BfvCt mult_plain(const BfvCt &ct, const BfvPt &pt);
+
+/// @brief 密文-密文乘的低层(tensor + t/Q 缩放), 产出三分量 degree-2 密文。
+///        满足 b0 + b1·s + b2·s² = Δ·(m1·m2) + noise。relin 前形态。
+BfvQuadraticCt mult_low_level(const BfvCt &ct1, const BfvCt &ct2);
+
+/// @brief 三分量密文解密(供直接使用/测试, 无需 relin)。
+BfvPt decrypt(const BfvQuadraticCt &ct, const RlweSk &rlwe_sk);
 
 } // namespace bfv
 

@@ -1,6 +1,6 @@
 #include "bfv.h"
+#include "bfv_internal.h"
 #include "bgv/bgv.h"
-#include "common/bigint.h"
 #include "common/mod_arith.h"
 #include "common/ntt.h"
 #include "common/rns_transform.h"
@@ -20,6 +20,56 @@ std::vector<u64> simd_decode(const BfvPt &pt, size_t data_size) {
     return bgv::simd_decode(pt, data_size);
 }
 
+// ── 共享工具(声明见 bfv_internal.h) ──────────────────────────────────────
+UBInt product_of(const std::vector<u64> &moduli) {
+    UBInt q(1);
+    for (auto m : moduli) {
+        q *= UBInt(m);
+    }
+    return q;
+}
+
+UBInt ubint_from_u128(unsigned __int128 v) {
+    const u64 lo = (u64)v;
+    const u64 hi = (u64)(v >> 64);
+    // 2^64 = (2^32)^2, 均可入 u64。
+    return UBInt(hi) * UBInt(4294967296ULL) * UBInt(4294967296ULL) + UBInt(lo);
+}
+
+// 相位(coeff form, RNS) → 明文: 逐系数 CRT 重建 + round(t·x/Q) mod t。
+BfvPt scale_and_round(const RnsPolynomial &phase, u64 t) {
+    const auto moduli = phase.modulus_vec();
+    const auto k = moduli.size();
+    const auto n = phase.dimension();
+
+    const UBInt Q = product_of(moduli);
+    const UBInt half_Q = Q / UBInt(2);
+    const UBInt t_big(t);
+    std::vector<UBInt> crt_coeff(k); // M_i · (M_i^{-1} mod q_i)
+    for (size_t i = 0; i < k; i++) {
+        const u64 q_i = moduli[i];
+        const UBInt M_i = Q / UBInt(q_i);
+        const u64 m_i = to_u64(M_i % UBInt(q_i));
+        const u64 g_i = inverse_mod_prime(m_i, q_i);
+        crt_coeff[i] = M_i * UBInt(g_i);
+    }
+
+    BfvPt pt(RnsPolyParams{n, 1, std::vector<u64>{t}});
+    pt.rep_form = PolyRepForm::coeff;
+    auto out = pt[0].data();
+    for (size_t j = 0; j < n; j++) {
+        UBInt x;
+        for (size_t i = 0; i < k; i++) {
+            x += UBInt(phase[i][j]) * crt_coeff[i];
+        }
+        x %= Q;
+        UBInt r = (t_big * x + half_Q) / Q; // round(t·x/Q)
+        r %= t_big;
+        out[j] = to_u64(r);
+    }
+    return pt;
+}
+
 namespace {
 // 分量原地标量乘: data[j] = data[j] * scalar mod modulus。
 inline void scale_component_inplace(u64 *data, size_t n, u64 scalar,
@@ -27,15 +77,6 @@ inline void scale_component_inplace(u64 *data, size_t n, u64 scalar,
     for (size_t j = 0; j < n; j++) {
         data[j] = (u64)(((unsigned __int128)data[j] * scalar) % modulus);
     }
-}
-
-// Q = ∏ ct_moduli (大整数)。
-UBInt product_of(const std::vector<u64> &moduli) {
-    UBInt q(1);
-    for (auto m : moduli) {
-        q *= UBInt(m);
-    }
-    return q;
 }
 } // namespace
 
@@ -76,41 +117,9 @@ BfvCt encrypt(const BfvPt &pt, const RlweSk &rlwe_sk,
 }
 
 BfvPt decrypt(const BfvCt &ct, const RlweSk &rlwe_sk) {
-    // phase = (c0 + c1·s) mod Q = Δ·pt + e, coeff form, RNS。
+    // phase = (c0 + c1·s) mod Q = Δ·pt + e, coeff form, RNS; 再 scale-and-round。
     auto phase = decrypt_core(ct, rlwe_sk);
-    const auto moduli = phase.modulus_vec();
-    const auto k = moduli.size();
-    const auto n = phase.dimension();
-    const u64 t = ct.plain_modulus;
-
-    // CRT 重建系数 + scale-and-round: pt_j = round(t·x_j/Q) mod t。
-    const UBInt Q = product_of(moduli);
-    const UBInt half_Q = Q / UBInt(2);
-    const UBInt t_big(t);
-    std::vector<UBInt> crt_coeff(k); // M_i · (M_i^{-1} mod q_i)
-    for (size_t i = 0; i < k; i++) {
-        const u64 q_i = moduli[i];
-        const UBInt M_i = Q / UBInt(q_i);
-        const u64 m_i = to_u64(M_i % UBInt(q_i));
-        const u64 g_i = inverse_mod_prime(m_i, q_i);
-        crt_coeff[i] = M_i * UBInt(g_i);
-    }
-
-    BfvPt pt(RnsPolyParams{n, 1, std::vector<u64>{t}});
-    pt.rep_form = PolyRepForm::coeff;
-    auto out = pt[0].data();
-    for (size_t j = 0; j < n; j++) {
-        UBInt x;
-        for (size_t i = 0; i < k; i++) {
-            x += UBInt(phase[i][j]) * crt_coeff[i];
-        }
-        x %= Q;
-        // round(t·x/Q) = (t·x + Q/2) / Q
-        UBInt r = (t_big * x + half_Q) / Q;
-        r %= t_big;
-        out[j] = to_u64(r);
-    }
-    return pt;
+    return scale_and_round(phase, ct.plain_modulus);
 }
 
 } // namespace bfv
