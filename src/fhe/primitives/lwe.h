@@ -55,4 +55,17 @@ LweSk lwe_sk_from_rlwe(const RlweSk &rlwe_sk);
 ///        s' = RLWE 私钥系数(见 lwe_sk_from_rlwe)。是门自举输出/中间步骤的关键。
 LweCt sample_extract(const RlweCt &ct, size_t coeff_index = 0);
 
+/// @brief LWE 密钥切换钥: ksk[i][j] = LWE_{sk_to}(s_from_i · base^j)。
+struct LweKsk {
+    std::vector<std::vector<LweCt>> data; // [N][digits]
+    size_t base_bits = 0;
+    u64 modulus = 0;
+};
+
+/// @brief 生成密钥切换钥(从 sk_from 维度 N → sk_to 维度 n, 同模数 q)。
+LweKsk gen_lwe_ksk(const LweSk &sk_from, const LweSk &sk_to, size_t base_bits = 8);
+
+/// @brief LWE 密钥切换: 把 sk_from 下的密文换到 sk_to 下(相位/明文不变, 维度变 n)。
+LweCt lwe_key_switch(const LweCt &ct, const LweKsk &ksk);
+
 } // namespace hehub

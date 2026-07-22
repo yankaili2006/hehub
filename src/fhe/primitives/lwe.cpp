@@ -152,6 +152,99 @@ LweSk lwe_sk_from_rlwe(const RlweSk &rlwe_sk) {
     return out;
 }
 
+namespace {
+// 无缩放加密: b + <a,s> = value + e (mod q)。供 key-switch 钥。
+LweCt lwe_encrypt_raw(u64 value, const LweSk &sk) {
+    const u64 q = sk.modulus;
+    const size_t n = sk.s.size();
+    LweCt ct;
+    ct.modulus = q;
+    ct.a.resize(n);
+    for (size_t i = 0; i < n; i++) {
+        ct.a[i] = rand_mod(q);
+    }
+    i64 e = sample_gaussian();
+    i64 em = e % (i64)q;
+    if (em < 0)
+        em += (i64)q;
+    u64 body = (u64)(((unsigned __int128)(value % q) + (u64)em) % q);
+    u64 as = phase(ct.a, 0, sk.s, q);
+    ct.b = (u64)(((unsigned __int128)body + (q - as)) % q);
+    return ct;
+}
+
+// out += scalar · ct (逐分量 mod q)。
+void lwe_axpy(LweCt &out, u64 scalar, const LweCt &ct) {
+    const u64 q = out.modulus;
+    for (size_t i = 0; i < out.a.size(); i++) {
+        out.a[i] = (u64)(((unsigned __int128)out.a[i] +
+                          (unsigned __int128)scalar * ct.a[i]) %
+                         q);
+    }
+    out.b = (u64)(((unsigned __int128)out.b + (unsigned __int128)scalar * ct.b) %
+                  q);
+}
+} // namespace
+
+LweKsk gen_lwe_ksk(const LweSk &sk_from, const LweSk &sk_to, size_t base_bits) {
+    if (sk_from.modulus != sk_to.modulus) {
+        throw std::invalid_argument("KSK: 模数需一致。");
+    }
+    const u64 q = sk_from.modulus;
+    const size_t N = sk_from.s.size();
+    const u64 base = (u64)1 << base_bits;
+    size_t digits = 0;
+    for (u64 tmp = q; tmp > 0; tmp >>= base_bits) {
+        digits++;
+    }
+
+    LweKsk ksk;
+    ksk.base_bits = base_bits;
+    ksk.modulus = q;
+    ksk.data.resize(N);
+    for (size_t i = 0; i < N; i++) {
+        ksk.data[i].resize(digits);
+        u64 bj = 1; // base^j
+        for (size_t j = 0; j < digits; j++) {
+            // value = s_from_i · base^j (mod q), s_from_i ∈ {-1,0,1}
+            u64 val;
+            u64 sb = (u64)(((unsigned __int128)bj) % q);
+            if (sk_from.s[i] == 1) {
+                val = sb;
+            } else if (sk_from.s[i] == -1) {
+                val = (sb == 0) ? 0 : (q - sb);
+            } else {
+                val = 0;
+            }
+            ksk.data[i][j] = lwe_encrypt_raw(val, sk_to);
+            bj = (u64)(((unsigned __int128)bj << base_bits) % q);
+        }
+    }
+    return ksk;
+}
+
+LweCt lwe_key_switch(const LweCt &ct, const LweKsk &ksk) {
+    const u64 q = ct.modulus;
+    const size_t N = ct.a.size();
+    const size_t n = ksk.data.empty() ? 0 : ksk.data[0][0].a.size();
+    const u64 mask = ((u64)1 << ksk.base_bits) - 1;
+
+    LweCt out;
+    out.modulus = q;
+    out.a.assign(n, 0);
+    out.b = ct.b; // (0, b)
+    for (size_t i = 0; i < N; i++) {
+        u64 ai = ct.a[i];
+        for (size_t j = 0; j < ksk.data[i].size(); j++) {
+            u64 digit = (ai >> (j * ksk.base_bits)) & mask;
+            if (digit != 0) {
+                lwe_axpy(out, digit, ksk.data[i][j]);
+            }
+        }
+    }
+    return out;
+}
+
 LweCt sample_extract(const RlweCt &ct, size_t coeff_index) {
     if (ct[0].component_count() != 1 || ct[1].component_count() != 1) {
         throw std::invalid_argument("sample extraction 需单模数 RLWE 密文。");

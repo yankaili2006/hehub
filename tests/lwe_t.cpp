@@ -26,6 +26,22 @@ TEST_CASE("lwe sample extraction from RLWE") {
     }
 }
 
+TEST_CASE("lwe key switch") {
+    // sk_from(维度 N=256) → sk_to(维度 n=64), 同模数, 明文保持不变。
+    u64 q = (u64)1 << 32;
+    u64 t = 16;
+    LweSk sk_from(LweParams{256, q});
+    LweSk sk_to(LweParams{64, q});
+    auto ksk = gen_lwe_ksk(sk_from, sk_to, 8);
+
+    for (u64 m = 0; m < t; m++) {
+        auto ct = lwe_encrypt(m, t, sk_from);
+        auto ct2 = lwe_key_switch(ct, ksk);
+        REQUIRE(ct2.a.size() == 64);
+        REQUIRE(lwe_decrypt(ct2, t, sk_to) == m);
+    }
+}
+
 TEST_CASE("lwe basics") {
     LweParams params{512, (u64)1 << 32}; // n=512, q=2^32
     u64 t = 16;
