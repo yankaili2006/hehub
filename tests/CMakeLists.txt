@@ -1,6 +1,6 @@
 add_executable(tests tests.cpp common_t.cpp bigint_t.cpp
     mod_arith_t.cpp ntt_t.cpp rlwe_t.cpp bgv_t.cpp ckks_t.cpp bfv_t.cpp lwe_t.cpp
-    tfhe_t.cpp)
+    tfhe_t.cpp fhew_t.cpp)
 target_link_libraries(tests PUBLIC hehub)
 target_include_directories(tests PUBLIC ${PROJECT_SOURCE_DIR}/third-party)
 
