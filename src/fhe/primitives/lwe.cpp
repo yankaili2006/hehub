@@ -52,6 +52,17 @@ LweSk::LweSk(const LweParams &params)
     }
 }
 
+LweSk sample_binary_lwe_sk(const LweParams &params) {
+    LweSk sk;
+    sk.modulus = params.modulus;
+    sk.s.resize(params.dimension);
+    std::uniform_int_distribution<int> coin(0, 1);
+    for (auto &si : sk.s) {
+        si = coin(lwe_rng());
+    }
+    return sk;
+}
+
 LweCt lwe_encrypt(u64 message, u64 plain_modulus, const LweSk &sk) {
     const u64 q = sk.modulus;
     const size_t n = sk.s.size();

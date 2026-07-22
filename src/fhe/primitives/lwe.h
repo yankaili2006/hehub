@@ -36,6 +36,9 @@ struct LweSk {
     explicit LweSk(const LweParams &params);
 };
 
+/// @brief 采样二元 LWE 私钥 s∈{0,1}^n (盲旋转的自举密钥要求二元, 单次 CMux 即得 X^{a_i·s_i})。
+LweSk sample_binary_lwe_sk(const LweParams &params);
+
 /// @brief 加密 m∈Z_t: b + <a,s> = Δ·m + e (mod q), Δ=round(q/t)。
 LweCt lwe_encrypt(u64 message, u64 plain_modulus, const LweSk &sk);
 
