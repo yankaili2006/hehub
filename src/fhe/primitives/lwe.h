@@ -8,6 +8,7 @@
 #pragma once
 
 #include "common/type_defs.h"
+#include "primitives/rlwe.h"
 #include <cstddef>
 #include <vector>
 
@@ -45,5 +46,13 @@ u64 lwe_decrypt(const LweCt &ct, u64 plain_modulus, const LweSk &sk);
 LweCt lwe_add(const LweCt &x, const LweCt &y);
 LweCt lwe_sub(const LweCt &x, const LweCt &y);
 LweCt lwe_negate(const LweCt &x);
+
+/// @brief 由 RLWE 私钥(单模数)导出对应的 LWE 私钥(系数即 s_i, 供 sample extraction 后解密)。
+LweSk lwe_sk_from_rlwe(const RlweSk &rlwe_sk);
+
+/// @brief 从单模数 RLWE 密文提取第 coeff_index 个系数对应的 LWE 密文。
+///        RLWE 相位 = c0 + c1·s (coeff form), 提取后 b+<a,s'> = 该系数的相位(=Δ·m_k+e),
+///        s' = RLWE 私钥系数(见 lwe_sk_from_rlwe)。是门自举输出/中间步骤的关键。
+LweCt sample_extract(const RlweCt &ct, size_t coeff_index = 0);
 
 } // namespace hehub

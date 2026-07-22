@@ -1,7 +1,30 @@
+#include "bfv/bfv.h"
 #include "catch2/catch.hpp"
+#include "common/sampling.h"
 #include "primitives/lwe.h"
 
 using namespace hehub;
+
+TEST_CASE("lwe sample extraction from RLWE") {
+    // 单模数 RLWE(用 BFV 加密), 提取若干系数的 LWE 并用导出的 LWE 私钥解密。
+    std::vector<u64> ct_moduli{1073643521}; // 单个 NTT 友好素数 (≡1 mod 2n)
+    size_t dimension = 256;
+    RnsPolyParams ct_params{dimension, ct_moduli.size(), ct_moduli};
+    RlweSk sk(ct_params);
+
+    u64 t = 17;
+    RnsPolyParams pt_params{dimension, 1, std::vector{t}};
+    BfvPt pt = get_rand_uniform_poly(pt_params); // coeff form, mod t
+
+    auto ct = bfv::encrypt(pt, sk, ct_moduli);
+    auto lwe_sk = lwe_sk_from_rlwe(sk);
+
+    for (size_t k : {(size_t)0, (size_t)1, (size_t)5, dimension - 1}) {
+        auto lwe = sample_extract(ct, k);
+        u64 m = lwe_decrypt(lwe, t, lwe_sk);
+        REQUIRE(m == pt[0][k]);
+    }
+}
 
 TEST_CASE("lwe basics") {
     LweParams params{512, (u64)1 << 32}; // n=512, q=2^32

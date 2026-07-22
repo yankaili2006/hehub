@@ -1,4 +1,6 @@
 #include "lwe.h"
+#include "common/mod_arith.h"
+#include "common/ntt.h"
 #include <cmath>
 #include <random>
 #include <stdexcept>
@@ -126,6 +128,58 @@ LweCt lwe_negate(const LweCt &x) {
         out.a[i] = (x.a[i] == 0) ? 0 : (q - x.a[i]);
     }
     out.b = (x.b == 0) ? 0 : (q - x.b);
+    return out;
+}
+
+LweSk lwe_sk_from_rlwe(const RlweSk &rlwe_sk) {
+    if (rlwe_sk.component_count() != 1) {
+        throw std::invalid_argument(
+            "sample extraction 需单模数 RLWE 私钥(component_count==1)。");
+    }
+    // RlweSk 存为 NTT value form, 转 coeff 得系数, 再中心化到 {-1,0,1}。
+    RnsPolynomial s = rlwe_sk;
+    intt_negacyclic_inplace_lazy(s);
+    reduce_strict(s);
+    const u64 q = s.modulus_at(0);
+    const size_t n = s.dimension();
+    LweSk out;
+    out.modulus = q;
+    out.s.resize(n);
+    for (size_t i = 0; i < n; i++) {
+        u64 c = s[0][i];
+        out.s[i] = (c == 0) ? 0 : (c == 1 ? 1 : -1); // 三元: 0, 1, 或 q-1(=-1)
+    }
+    return out;
+}
+
+LweCt sample_extract(const RlweCt &ct, size_t coeff_index) {
+    if (ct[0].component_count() != 1 || ct[1].component_count() != 1) {
+        throw std::invalid_argument("sample extraction 需单模数 RLWE 密文。");
+    }
+    // 转 coeff form。
+    RnsPolynomial c0 = ct[0], c1 = ct[1];
+    intt_negacyclic_inplace_lazy(c0);
+    reduce_strict(c0);
+    intt_negacyclic_inplace_lazy(c1);
+    reduce_strict(c1);
+
+    const u64 q = c0.modulus_at(0);
+    const size_t n = c0.dimension();
+    const size_t k = coeff_index;
+
+    LweCt out;
+    out.modulus = q;
+    out.b = c0[0][k];
+    out.a.resize(n);
+    // (c1·s)_k = Σ_i a[i]·s_i, a[i] = c1_{k-i} (i≤k) 或 -c1_{k-i+n} (i>k)。
+    for (size_t i = 0; i < n; i++) {
+        if (i <= k) {
+            out.a[i] = c1[0][k - i];
+        } else {
+            u64 v = c1[0][k - i + n];
+            out.a[i] = (v == 0) ? 0 : (q - v); // 负循环取负
+        }
+    }
     return out;
 }
 
