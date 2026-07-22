@@ -54,5 +54,14 @@ BfvCt sub_plain(const BfvCt &ct, const BfvPt &pt) {
     return out;
 }
 
+BfvCt mult_plain(const BfvCt &ct, const BfvPt &pt) {
+    // 明文乘不缩放: 原始明文迁到密文模并转 NTT, 逐分量乘密文两分量。
+    auto pt_under_ct = rns_base_transform(pt, ct[0].modulus_vec());
+    ntt_negacyclic_inplace_lazy(pt_under_ct);
+    BfvCt out = ::hehub::mult_plain_core(ct, pt_under_ct);
+    out.plain_modulus = ct.plain_modulus;
+    return out;
+}
+
 } // namespace bfv
 } // namespace hehub

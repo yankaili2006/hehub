@@ -68,6 +68,29 @@ TEST_CASE("bfv encryption") {
         }
     }
 
+    SECTION("SIMD encrypt/decrypt + mult_plain (slot-wise)") {
+        u64 t = 65537;
+        size_t slots = dimension;
+        std::vector<u64> a(slots), b(slots);
+        u64 s = 7;
+        for (size_t i = 0; i < slots; i++) {
+            a[i] = (s = s * 1103515245 + 12345) % t;
+            b[i] = (s = s * 1103515245 + 12345) % t;
+        }
+        auto pt_a = bfv::simd_encode(a, t, slots);
+        auto pt_b = bfv::simd_encode(b, t, slots);
+
+        auto ct = bfv::encrypt(pt_a, sk);
+        // 密文-明文乘: 槽位乘 a[i]*b[i]
+        auto ct_prod = bfv::mult_plain(ct, pt_b);
+        auto dec = bfv::simd_decode(bfv::decrypt(ct_prod, sk), slots);
+
+        for (size_t i = 0; i < slots; i++) {
+            u64 expect = (u64)(((unsigned __int128)a[i] * b[i]) % t);
+            REQUIRE(dec[i] == expect);
+        }
+    }
+
     SECTION("coprime condition") {
         u64 t = 131530753; // 与某个密文模相同 → 非互素, 应抛异常
         RnsPolyParams pt_params{dimension, 1, std::vector{t}};

@@ -51,6 +51,9 @@ BfvCt sub(const BfvCt &ct1, const BfvCt &ct2);
 /// @brief 明文减(密-明)。
 BfvCt sub_plain(const BfvCt &ct, const BfvPt &pt);
 
+/// @brief 明文乘(密×明)。明文不作 Δ 缩放(Δm·m'=Δ(mm'))。
+BfvCt mult_plain(const BfvCt &ct, const BfvPt &pt);
+
 } // namespace bfv
 
 // export types
