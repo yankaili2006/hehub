@@ -114,6 +114,34 @@ TEST_CASE("bfv encryption") {
         }
     }
 
+    SECTION("ct-ct mult + relinearize (degree-2 -> 1)") {
+        u64 t = 65537;
+        u64 additional_mod = 134348801; // NTT 友好素数, 供 relin key 密钥切换
+        size_t slots = dimension;
+        std::vector<u64> a(slots), b(slots);
+        u64 s = 11;
+        for (size_t i = 0; i < slots; i++) {
+            a[i] = (s = s * 1103515245 + 12345) % t;
+            b[i] = (s = s * 1103515245 + 12345) % t;
+        }
+        auto pt_a = bfv::simd_encode(a, t, slots);
+        auto pt_b = bfv::simd_encode(b, t, slots);
+
+        auto ct_a = bfv::encrypt(pt_a, sk);
+        auto ct_b = bfv::encrypt(pt_b, sk);
+        auto relin_key = get_relin_key(sk, additional_mod);
+
+        auto quad = bfv::mult_low_level(ct_a, ct_b);
+        auto ct_prod = bfv::relinearize(quad, relin_key); // degree-1
+        REQUIRE(ct_prod[0].component_count() == ct_moduli.size());
+        auto dec = bfv::simd_decode(bfv::decrypt(ct_prod, sk), slots);
+
+        for (size_t i = 0; i < slots; i++) {
+            u64 expect = (u64)(((unsigned __int128)a[i] * b[i]) % t);
+            REQUIRE(dec[i] == expect);
+        }
+    }
+
     SECTION("coprime condition") {
         u64 t = 131530753; // 与某个密文模相同 → 非互素, 应抛异常
         RnsPolyParams pt_params{dimension, 1, std::vector{t}};

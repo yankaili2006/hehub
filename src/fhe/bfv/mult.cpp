@@ -1,7 +1,10 @@
 #include "bfv.h"
 #include "bfv_internal.h"
+#include "ckks/ckks.h"
 #include "common/mod_arith.h"
 #include "common/ntt.h"
+#include "primitives/keys.h"
+#include "primitives/rgsw.h"
 #include <stdexcept>
 #include <vector>
 
@@ -150,6 +153,20 @@ BfvPt decrypt(const BfvQuadraticCt &ct, const RlweSk &rlwe_sk) {
     phase += b2s2;
     reduce_strict(phase);
     return scale_and_round(phase, ct.plain_modulus);
+}
+
+BfvCt relinearize(const BfvQuadraticCt &ct, const RlweKsk &relin_key) {
+    // 对 b2(与 s² 配对)做密钥切换到 s 下: ext_prod 得 P·(b2·s²) under P·Q,
+    // 再 rescale(丢 additional prime P)得 b2·s² under Q; 与 CKKS relin 同构。
+    RlweCt ks = ext_prod_montgomery(ct[2], relin_key);
+    CkksCt tmp = RlweCt{ks[0], ks[1]};
+    ckks::rescale_inplace(tmp);
+
+    BfvCt out = RlweCt{tmp[0], tmp[1]};
+    out[0] += ct[0];
+    out[1] += ct[1];
+    out.plain_modulus = ct.plain_modulus;
+    return out;
 }
 
 } // namespace bfv

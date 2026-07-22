@@ -67,6 +67,11 @@ BfvQuadraticCt mult_low_level(const BfvCt &ct1, const BfvCt &ct2);
 /// @brief 三分量密文解密(供直接使用/测试, 无需 relin)。
 BfvPt decrypt(const BfvQuadraticCt &ct, const RlweSk &rlwe_sk);
 
+/// @brief 重线性化: degree-2 密文 → degree-1(用 relin key = RGSW(s²))。
+///        对 b2 做密钥切换到 s 下(经 additional prime), rescale 后并回 (b0,b1)。
+///        supports 连乘。relin_key = get_relin_key(sk, additional_mod)。
+BfvCt relinearize(const BfvQuadraticCt &ct, const RlweKsk &relin_key);
+
 } // namespace bfv
 
 // export types
