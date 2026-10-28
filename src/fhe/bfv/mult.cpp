@@ -1,10 +1,10 @@
 #include "bfv.h"
 #include "bfv_internal.h"
-#include "ckks/ckks.h"
-#include "common/mod_arith.h"
-#include "common/ntt.h"
-#include "primitives/keys.h"
-#include "primitives/rgsw.h"
+#include "fhe/ckks/ckks.h"
+#include "fhe/common/mod_arith.h"
+#include "fhe/common/ntt.h"
+#include "fhe/primitives/keys.h"
+#include "fhe/primitives/rgsw.h"
 #include <stdexcept>
 #include <vector>
 

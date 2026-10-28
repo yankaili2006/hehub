@@ -7,8 +7,8 @@
  */
 #pragma once
 
-#include "common/type_defs.h"
-#include "primitives/rlwe.h"
+#include "fhe/common/type_defs.h"
+#include "fhe/primitives/rlwe.h"
 #include <cstddef>
 #include <vector>
 

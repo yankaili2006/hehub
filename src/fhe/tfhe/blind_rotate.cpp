@@ -1,7 +1,7 @@
 #include "blind_rotate.h"
-#include "common/mod_arith.h"
-#include "common/ntt.h"
-#include "common/sampling.h"
+#include "fhe/common/mod_arith.h"
+#include "fhe/common/ntt.h"
+#include "fhe/common/sampling.h"
 #include <stdexcept>
 
 namespace hehub {

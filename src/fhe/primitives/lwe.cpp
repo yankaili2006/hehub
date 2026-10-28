@@ -1,6 +1,6 @@
 #include "lwe.h"
-#include "common/mod_arith.h"
-#include "common/ntt.h"
+#include "fhe/common/mod_arith.h"
+#include "fhe/common/ntt.h"
 #include <cmath>
 #include <random>
 #include <stdexcept>

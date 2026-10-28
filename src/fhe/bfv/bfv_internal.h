@@ -4,8 +4,8 @@
  */
 #pragma once
 #include "bfv.h"
-#include "common/bigint.h"
-#include "common/rns.h"
+#include "fhe/common/bigint.h"
+#include "fhe/common/rns.h"
 
 namespace hehub {
 namespace bfv {

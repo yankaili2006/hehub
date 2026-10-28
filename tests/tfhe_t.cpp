@@ -1,10 +1,10 @@
 #include "catch2/catch.hpp"
-#include "common/rns.h"
-#include "common/sampling.h"
-#include "primitives/lwe.h"
-#include "primitives/rlwe.h"
-#include "tfhe/blind_rotate.h"
-#include "tfhe/func_boot.h"
+#include "fhe/common/rns.h"
+#include "fhe/common/sampling.h"
+#include "fhe/primitives/lwe.h"
+#include "fhe/primitives/rlwe.h"
+#include "fhe/tfhe/blind_rotate.h"
+#include "fhe/tfhe/func_boot.h"
 #include <vector>
 
 using namespace hehub;

@@ -13,10 +13,10 @@
  */
 #pragma once
 
-#include "common/rns.h"
-#include "primitives/lwe.h"
-#include "primitives/rgsw.h"
-#include "primitives/rlwe.h"
+#include "fhe/common/rns.h"
+#include "fhe/primitives/lwe.h"
+#include "fhe/primitives/rgsw.h"
+#include "fhe/primitives/rlwe.h"
 #include <vector>
 
 namespace hehub {

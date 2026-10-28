@@ -1,6 +1,6 @@
-#include "bfv/bfv.h"
+#include "fhe/bfv/bfv.h"
 #include "catch2/catch.hpp"
-#include "common/sampling.h"
+#include "fhe/common/sampling.h"
 #include <vector>
 
 using namespace hehub;

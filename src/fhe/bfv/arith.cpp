@@ -1,7 +1,7 @@
 #include "bfv.h"
-#include "common/bigint.h"
-#include "common/ntt.h"
-#include "common/rns_transform.h"
+#include "fhe/common/bigint.h"
+#include "fhe/common/ntt.h"
+#include "fhe/common/rns_transform.h"
 
 namespace hehub {
 namespace bfv {
