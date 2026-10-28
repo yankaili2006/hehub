@@ -36,8 +36,9 @@ using RgswCt = std::vector<RlweCt>;
  * @param decomp_basis gadget 分解基, 每行是一组按 RNS 分量给出的标量(∈各模数)。
  * @return RgswCt 大小等于 decomp_basis.size() 的 RLWE 样本组。
  */
-RgswCt rgsw_encrypt(const RlwePt &pt_ntt, const RlweSk &sk,
-                    const std::vector<std::vector<u64>> &decomp_basis);
+RgswCt rgsw_encrypt(const RlwePt &pt_ntt, const RlweSk &sk, 
+                    const std::vector<std::vector<u64>> &decomp_basis,
+                    const u64 noise_lifting_factor = 1);
 
 /**
  * @brief 同 rgsw_encrypt, 但把每个多项式额外乘以 Montgomery 常数 (2^64 mod q_i),
@@ -47,8 +48,9 @@ RgswCt rgsw_encrypt(const RlwePt &pt_ntt, const RlweSk &sk,
  * @param decomp_basis gadget 分解基。
  * @return RgswCt Montgomery 域下的 RGSW 密文。
  */
-RgswCt rgsw_encrypt_montgomery(const RlwePt &pt_ntt, const RlweSk &sk,
-                               const std::vector<std::vector<u64>> &decomp_basis);
+RgswCt rgsw_encrypt_montgomery(const RlwePt &pt_ntt, const RlweSk &sk, 
+                               const std::vector<std::vector<u64>> &decomp_basis,
+                               const u64 noise_lifting_factor = 1);
 
 /**
  * @brief RLWE⊡RGSW 外积 (Montgomery 变体)。对输入 pt 做 RNS 分解构成分量矩阵, 与
