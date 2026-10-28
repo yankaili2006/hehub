@@ -6,10 +6,10 @@
 
 #pragma once
 
-#include "common/type_defs.h"
-#include "primitives/keys.h"
-#include "primitives/rgsw.h"
-#include "primitives/rlwe.h"
+#include "fhe/common/type_defs.h"
+#include "fhe/primitives/keys.h"
+#include "fhe/primitives/rgsw.h"
+#include "fhe/primitives/rlwe.h"
 #include <complex>
 #include <numeric>
 
@@ -45,7 +45,8 @@ CkksParams create_params(size_t dimension, std::vector<size_t> moduli_bits,
  * @brief Create a params object, which automatically determines the dimension,
  * moduli and initial scaling factor.
  * @param dimension The RLWE dimension.
- * @param initial_scaling_bits log2 value of the initial scaling factor.
+ * @param initial_scaling_bits log2 value of the initial scaling factor (≈ your
+ * data precision bits + 5).
  * @return CkksParams
  */
 CkksParams create_params(size_t dimension, size_t initial_scaling_bits);
@@ -165,7 +166,7 @@ template <typename T = double,
               nullptr>
 inline T decode(const CkksPt &pt) {
     std::vector<T> decoded_vec = simd_decode(pt);
-    T sum = std::accumulate(decoded_vec.begin(), decoded_vec.end(), 0);
+    T sum = std::accumulate(decoded_vec.begin(), decoded_vec.end(), (T)0);
     return sum / decoded_vec.size();
 }
 
@@ -290,6 +291,18 @@ CkksCt conjugate(const CkksCt &ct, const RlweKsk &conj_key);
  * @return CkksCt
  */
 CkksCt rotate(const CkksCt &ct, const RlweKsk &rot_key, const size_t step);
+
+/**
+ * @brief TODO
+ *
+ * @param ct
+ * @param rot_key
+ * @param step
+ * @return CkksCt
+ */
+inline CkksCt rotate(const CkksCt &ct, const RotKey &rot_key) {
+    return rotate(ct, rot_key, rot_key.step);
+}
 
 /**
  * @brief TODO

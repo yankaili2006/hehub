@@ -8,6 +8,40 @@ include(CTest)
 
 set(CMAKE_VERBOSE_MAKEFILE OFF)
 
+# ── Architecture-native optimizations ──────────────────────────────────
+option(HEHUB_NATIVE_ARCH "Enable -march=native for CPU-specific optimizations" ON)
+if(HEHUB_NATIVE_ARCH)
+    include(CheckCXXCompilerFlag)
+    check_cxx_compiler_flag("-march=native" HAS_MARCH_NATIVE)
+    if(HAS_MARCH_NATIVE)
+        add_compile_options(-march=native)
+    endif()
+endif()
+
+# ── Interprocedural optimization / LTO ─────────────────────────────────
+option(HEHUB_LTO "Enable link-time optimization" ON)
+if(HEHUB_LTO)
+    include(CheckCXXCompilerFlag)
+    check_cxx_compiler_flag("-flto" HAS_LTO)
+    if(HAS_LTO)
+        add_compile_options(-flto)
+        add_link_options(-flto)
+    endif()
+endif()
+
+# ── OpenMP ─────────────────────────────────────────────────────────────
+if(APPLE)
+    # Homebrew libomp (keg-only) on Apple Silicon
+    set(OPENMP_PREFIX "/opt/homebrew/opt/libomp")
+    if(EXISTS "${OPENMP_PREFIX}")
+        set(OpenMP_CXX_FLAGS "-Xclang -fopenmp -I${OPENMP_PREFIX}/include")
+        set(OpenMP_CXX_LIB_NAMES "libomp")
+        set(OpenMP_libomp_LIBRARY "${OPENMP_PREFIX}/lib/libomp.dylib")
+    endif()
+endif()
+find_package(OpenMP QUIET)
+
+# ── Debug mode ─────────────────────────────────────────────────────────
 Option(HEHUB_DEBUG OFF)
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
     set(HEHUB_DEBUG ON)
@@ -16,8 +50,8 @@ if(HEHUB_DEBUG)
     add_compile_definitions(HEHUB_DEBUG)
 endif()
 
-# compile the FHE library
-add_subdirectory(src/fhe)
+# compile the libraries
+add_subdirectory(src)
 
 # compile the tests
 add_subdirectory(tests)

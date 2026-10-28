@@ -4,8 +4,10 @@ target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
 
 set(THIRD_PARTY_DIR ${PROJECT_SOURCE_DIR}/third-party)
 
-target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/src)
+target_include_directories(${PROJECT_NAME} PUBLIC ${THIRD_PARTY_DIR})
 target_include_directories(${PROJECT_NAME} PUBLIC ${THIRD_PARTY_DIR}/range-v3)
+target_include_directories(${PROJECT_NAME} PUBLIC ${THIRD_PARTY_DIR}/MemoryPool)
 
 Option(HEHUB_DEBUG_FHE OFF)
 if(HEHUB_DEBUG)
@@ -22,6 +24,10 @@ if(HEHUB_DEBUG_RLWE_ZERO_C1)
 endif()
 if(HEHUB_DEBUG_RLWE_ZERO_E)
     target_compile_definitions(${PROJECT_NAME} PUBLIC HEHUB_DEBUG_RLWE_ZERO_E)
+endif()
+
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(${PROJECT_NAME} PUBLIC OpenMP::OpenMP_CXX)
 endif()
 
 add_subdirectory(common)

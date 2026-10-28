@@ -7,48 +7,6 @@ using namespace ranges::views;
 
 namespace hehub {
 
-RnsIntVec::ComponentData::ComponentData(const size_t dimension)
-    : dimension_(dimension), data_(new u64[dimension]) {}
-
-RnsIntVec::ComponentData::ComponentData(const ComponentData &other)
-    : dimension_(other.dimension_), data_(new u64[other.dimension_]) {
-    std::copy(other.data_, other.data_ + dimension_, data_);
-}
-
-RnsIntVec::ComponentData::~ComponentData() {
-    if (data_ != nullptr) {
-        delete[] data_;
-    }
-}
-
-RnsIntVec::ComponentData &
-RnsIntVec::ComponentData::operator=(const ComponentData &copying) {
-    if (dimension_ != copying.dimension_) {
-        if (data_ != nullptr) {
-            delete[] data_;
-        }
-        dimension_ = copying.dimension_;
-        data_ = new u64[copying.dimension_];
-    }
-    std::copy(copying.data_, copying.data_ + dimension_, data_);
-    return *this;
-}
-
-RnsIntVec::ComponentData &
-RnsIntVec::ComponentData::operator=(ComponentData &&moving) noexcept {
-    if (this == &moving) {
-        return *this;
-    }
-
-    dimension_ = moving.dimension_;
-    if (data_ != nullptr) {
-        delete[] data_;
-    }
-    data_ = moving.data_;
-    moving.data_ = nullptr;
-    return *this;
-}
-
 RnsIntVec::RnsIntVec(const size_t dimension, const size_t components,
                      const std::vector<u64> &moduli)
     : dimension_(dimension), components_(components),
@@ -117,6 +75,7 @@ const RnsIntVec &operator+=(RnsIntVec &self, const RnsIntVec &b) {
     for (auto &m : moduli_doubled) {
         m *= 2;
     }
+    #pragma omp parallel for
     for (size_t k = 0; k < components; k++) {
         for (size_t i = 0; i < dimension; i++) {
             self[k][i] += b[k][i];
@@ -148,6 +107,7 @@ const RnsIntVec &operator-=(RnsIntVec &self, const RnsIntVec &b) {
     for (auto &m : moduli_doubled) {
         m *= 2;
     }
+    #pragma omp parallel for
     for (size_t k = 0; k < components; k++) {
         for (size_t i = 0; i < dimension; i++) {
             self[k][i] += moduli_doubled[k] - b[k][i];
@@ -179,6 +139,7 @@ RnsIntVec operator*(const RnsIntVec &a, const RnsIntVec &b) {
     }
 
     RnsIntVec result(RnsIntVec::Params{dimension, components, moduli});
+    #pragma omp parallel for
     for (size_t k = 0; k < components; k++) {
         batched_mul_mod_hybrid_lazy(moduli[k], dimension, a[k].data(),
                                     b[k].data(), result[k].data());

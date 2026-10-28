@@ -1,4 +1,4 @@
-#include "ckks/ckks.h"
+#include "fhe/ckks/ckks.h"
 #include <cmath>
 #include <iostream>
 #include <numeric>
@@ -12,7 +12,7 @@ int main() {
     auto relin_key = get_relin_key(sk, params.additional_mod);
 
     CkksCt ct_sum;
-    for (int i = 1; i <= 100000; i++) {
+    for (int i = 1; i <= 10000; i++) {
         auto pt = ckks::encode(1.0 / i, params);
         auto ct = ckks::encrypt(pt, sk);
         auto ct_squared = ckks::mult(ct, ct, relin_key);
